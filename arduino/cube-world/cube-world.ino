@@ -11,16 +11,20 @@ const unsigned long ONE_BIT_DURATION = 170;
 const unsigned long NIBBLE_SEPARATION_DURATION = 100;
 const unsigned long PACKET_SEPARATION_DURATION = 200;
 
+void writeLow(int microseconds) {
+  pinMode(DATA_PIN, OUTPUT);
+  pinMode(OBSERVATION_PIN, OUTPUT);
+  digitalWrite(DATA_PIN, LOW);
+  digitalWrite(OBSERVATION_PIN, LOW);
+  delayMicroseconds(microseconds - 5);
+  pinMode(DATA_PIN, INPUT);
+  pinMode(OBSERVATION_PIN, INPUT);
+}
+
 // Sends a single bit via the Cube World protocol.
 // The DATA_PIN must be in OUTPUT mode.
 void sendBit(bool bit) {
-  digitalWrite(DATA_PIN, LOW);
-  digitalWrite(OBSERVATION_PIN, LOW);
-  delayMicroseconds(bit ? ONE_BIT_DURATION : ZERO_BIT_DURATION);
-  // The data is really contained in the low pulses so the length
-  // of the high pulse shouldn't matter. 
-  digitalWrite(DATA_PIN, HIGH);
-  digitalWrite(OBSERVATION_PIN, HIGH);
+  writeLow(bit ? ONE_BIT_DURATION : ZERO_BIT_DURATION);
 }
 
 // Sends a single nibble (4 bits) via the Cube World protocol.
@@ -44,48 +48,35 @@ void sendNibble(uint8_t nibble) {
 void sendPacket(uint8_t packet[7]) {
   // SIGNAL THE START OF THE PACKET.
   delayMicroseconds(100);
-  pinMode(DATA_PIN, OUTPUT);
-  pinMode(OBSERVATION_PIN, OUTPUT);
+  //pinMode(DATA_PIN, OUTPUT);
+  //pinMode(OBSERVATION_PIN, OUTPUT);
   
   // SEND THE DATA.
  for (int i = 0; i < 7; i++) {
     sendNibble(packet[i] & 0x0F);
 
     if (i == 6) {
-      digitalWrite(DATA_PIN, HIGH);
-      digitalWrite(OBSERVATION_PIN, HIGH);
+      //digitalWrite(DATA_PIN, HIGH);
+      //digitalWrite(OBSERVATION_PIN, HIGH);
       delayMicroseconds(37);
     } else if (i == 5) {
       delayMicroseconds(90);
     } else {
-      digitalWrite(DATA_PIN, HIGH);
-      digitalWrite(OBSERVATION_PIN, HIGH);
+      //digitalWrite(DATA_PIN, HIGH);
+      //digitalWrite(OBSERVATION_PIN, HIGH);
       delayMicroseconds(200);
     }
   }
   
   // SIGNAL THE END OF PACKET.
   // TODO: Which device sends this?
-  digitalWrite(DATA_PIN, LOW);
-  digitalWrite(OBSERVATION_PIN, LOW);
-  delayMicroseconds(85);
-  pinMode(DATA_PIN, INPUT);
-  pinMode(OBSERVATION_PIN, INPUT);
+  writeLow(85);
 }
 
 // Checks if another cube is listening.
 
 bool pollForCube() {
-  pinMode(DATA_PIN, OUTPUT);
-  pinMode(OBSERVATION_PIN, OUTPUT);
-
-  digitalWrite(DATA_PIN, LOW);
-  digitalWrite(OBSERVATION_PIN, LOW);
-  delayMicroseconds(230);
-
-  pinMode(DATA_PIN, INPUT);
-  pinMode(OBSERVATION_PIN, INPUT);
-
+  writeLow(235);
   bool pin_pulled_high = pulseIn(DATA_PIN, LOW, 1000) > 0;
   if (pin_pulled_high) {
     return true;
@@ -145,11 +136,13 @@ void setup() {
 void loop() {
   if (pollForCube()) {
     // TODO: Is each packet truly sent by a single device?
-    uint8_t packet[7] = {0x1, 0x7, 0x1, 0x6, 0x1, 0x1, 0x9};
-    sendPacket(packet);
+    uint8_t packet[7] = {0x1, 0x7, 0x1, 0x5, 0x1, 0x1, 0x9};
+    //sendPacket(packet);
     //Serial.println("found");
+    delayMicroseconds(100);
+    sendBit(false);
   }
-  delay(1000);
+  delay(350);
 }
 
   //if (readPacket()) {  // Read a complete packet
